@@ -2,14 +2,17 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const cors = require('cors');
-const app = express();
 
+const app = express();
 app.use(cors());
+app.use(express.json());
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const url = process.env.APP_URL;
 const port = process.env.PORT || 3000;
 
+const encodedToken = encodeURIComponent(token);
+console.log(encodedToken);
 const bot = new TelegramBot(token, {
   webHook: {
     port: port,
@@ -17,7 +20,11 @@ const bot = new TelegramBot(token, {
 });
 
 bot
-  .setWebHook(`${url}/bot${token}`)
+  .deleteWebHook()
+  .then(() => {
+    console.log('Webhook deleted');
+    return bot.setWebHook(`${url}/bot${encodedToken}`);
+  })
   .then(() => {
     console.log('Webhook set');
   })
@@ -25,8 +32,7 @@ bot
     console.error('Error setting webhook:', error);
   });
 
-app.use(`/bot${token}`, (req, res) => {
-  console.log('Received request for webhook');
+app.post(`/bot${encodedToken}`, (req, res) => {
   res.send('Webhook received');
 });
 
