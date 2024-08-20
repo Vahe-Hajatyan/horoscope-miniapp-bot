@@ -1,19 +1,37 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+const bodyParser = require('body-parser');
 const app = express();
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+app.use(bodyParser.json());
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const port = process.env.PORT ?? 3000;
+const port = process.env.PORT || 3000;
+const appUrl = process.env.APP_URL;
 
+const webhookUrl = `${appUrl}/webhook`;
+
+const bot = new TelegramBot(token);
 app.listen(port, () => {
-  console.log('Server running');
+  console.log(`Сервер запущен на порту ${port}`);
 });
-const bot = new TelegramBot(token, { polling: true });
+
+bot
+  .setWebHook(webhookUrl)
+  .then(() => {
+    console.log('Webhook успешно установлен');
+  })
+  .catch((error) => {
+    console.error('Ошибка при установке вебхука:', error);
+  });
+app.post('/webhook', (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
   console.log(`Received /echo command: ${match[1]}`);
